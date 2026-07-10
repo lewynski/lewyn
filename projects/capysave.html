@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CapySave | Personal Finance Terminal</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #1e1e2f; --panel-bg: #2a2a40; --text-main: #f8f8f2;
+            --text-muted: #a8a8b2; --retro-green: #4ade80; --retro-blue: #3b82f6;
+            --retro-purple: #bd93f9; --retro-pink: #ff79c6; --retro-gold: #facc15;
+            --retro-red: #ff5555; --border-dark: #000000;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'VT323', monospace; background-color: var(--bg-color);
+            color: var(--text-main); font-size: 1.3rem; line-height: 1.6;
+            padding: 20px; background-image: linear-gradient(rgba(255,255,255,0.03) 2px, transparent 2px),
+            linear-gradient(90deg, rgba(255,255,255,0.03) 2px, transparent 2px);
+            background-size: 30px 30px; min-height: 100vh;
+        }
+
+        a, button { cursor: pointer; }
+
+        .back-btn {
+            display: inline-block; margin-bottom: 20px; background: var(--panel-bg); color: var(--text-main);
+            padding: 10px 15px; text-decoration: none; font-family: 'Press Start 2P', cursive; font-size: 0.6rem;
+            border: 4px solid var(--border-dark); box-shadow: 4px 4px 0px var(--border-dark); transition: all 0.1s;
+        }
+        .back-btn:hover { background: var(--retro-blue); }
+        .back-btn:active { transform: translate(4px, 4px); box-shadow: 0px 0px 0px var(--border-dark); }
+
+        .app-container {
+            max-width: 1100px; margin: 0 auto; background: var(--panel-bg); border: 6px solid var(--border-dark);
+            box-shadow: 12px 12px 0px var(--border-dark); padding: 30px;
+        }
+
+        header { text-align: center; border-bottom: 4px dashed var(--border-dark); padding-bottom: 20px; margin-bottom: 30px; }
+        h1 { font-family: 'Press Start 2P', cursive; font-size: 1.8rem; color: var(--retro-gold); text-shadow: 4px 4px 0px var(--border-dark); margin-bottom: 10px; }
+        .subtitle { color: var(--retro-green); font-size: 1.2rem; }
+
+        /* --- DASHBOARDS --- */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        
+        .stat-card {
+            background: #1e1e2f; border: 4px solid var(--border-dark); padding: 15px;
+            text-align: center; box-shadow: 6px 6px 0px var(--border-dark); position: relative;
+        }
+        .stat-card.primary { border-color: var(--retro-purple); }
+        .stat-card.warning { border-color: var(--retro-red); }
+        .stat-card.good { border-color: var(--retro-green); }
+        
+        .stat-card h3 { font-family: 'Press Start 2P', cursive; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4;}
+        .stat-card .val { font-size: 2rem; font-weight: bold; color: #fff; }
+        .stat-card .sub-val { font-size: 1rem; color: var(--retro-gold); margin-top: 5px;}
+
+        /* --- USER SETTINGS --- */
+        .settings-bar {
+            background: rgba(0,0,0,0.3); border: 4px solid var(--border-dark); padding: 15px; margin-bottom: 30px;
+            display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: flex-end;
+        }
+        .setting-group { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 5px; }
+        .setting-group label { font-family: 'Press Start 2P', cursive; font-size: 0.55rem; color: var(--retro-blue); }
+        .setting-group input { 
+            padding: 8px; font-family: 'VT323', monospace; font-size: 1.2rem; background: #000; color: var(--retro-green);
+            border: 2px solid var(--border-dark); outline: none; width: 100%;
+        }
+        .setting-group input:focus { border-color: var(--retro-pink); }
+        .btn-update {
+            background: var(--retro-blue); color: #fff; border: 4px solid var(--border-dark); padding: 10px 15px;
+            font-family: 'Press Start 2P', cursive; font-size: 0.6rem; cursor: pointer; box-shadow: 4px 4px 0px var(--border-dark);
+        }
+        .btn-update:active { transform: translate(4px, 4px); box-shadow: 0px 0px 0px var(--border-dark); }
+
+        /* --- LAYOUT --- */
+        .main-content { display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px; margin-bottom: 30px;}
+        .bottom-content { display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; }
+        @media (max-width: 850px) { .main-content, .bottom-content { grid-template-columns: 1fr; } }
+
+        /* --- FORMS --- */
+        .panel { background: rgba(0,0,0,0.2); border: 4px solid var(--border-dark); padding: 20px; display: flex; flex-direction: column;}
+        .panel h2 { font-family: 'Press Start 2P', cursive; font-size: 0.8rem; color: var(--retro-pink); margin-bottom: 20px; border-bottom: 2px solid var(--border-dark); padding-bottom: 10px;}
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-family: 'Press Start 2P', cursive; font-size: 0.55rem; color: var(--retro-gold); margin-bottom: 8px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 12px; font-family: 'VT323', monospace; font-size: 1.3rem; background: var(--bg-color);
+            color: var(--text-main); border: 4px solid var(--border-dark); outline: none;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: var(--retro-pink); }
+        .btn-submit {
+            width: 100%; background: var(--retro-pink); color: #fff; padding: 15px; border: 4px solid var(--border-dark); 
+            box-shadow: 4px 4px 0px var(--border-dark); font-family: 'Press Start 2P', cursive; font-size: 0.7rem; 
+            margin-top: 10px; transition: all 0.1s; cursor: pointer;
+        }
+        .btn-submit:active { transform: translate(4px, 4px); box-shadow: 0px 0px 0px var(--border-dark); }
+
+        /* --- LOGS --- */
+        #transaction-list { list-style: none; height: 350px; overflow-y: auto; padding-right: 10px; margin-bottom: 15px;}
+        #transaction-list::-webkit-scrollbar { width: 8px; }
+        #transaction-list::-webkit-scrollbar-thumb { background: var(--border-dark); }
+
+        .tx-item {
+            background: var(--panel-bg); border: 2px solid var(--border-dark); padding: 12px; margin-bottom: 10px; 
+            display: flex; justify-content: space-between; align-items: center; position: relative;
+        }
+        .tx-info { flex-grow: 1; }
+        .tx-info h4 { font-family: 'Press Start 2P', cursive; font-size: 0.6rem; color: #fff; margin-bottom: 5px; line-height: 1.4;}
+        .tx-info p { font-size: 0.95rem; color: var(--text-muted); }
+        .tx-amount { font-family: 'Press Start 2P', cursive; font-size: 0.7rem; text-align: right; margin-right: 15px;}
+        .tx-amount.income { color: var(--retro-green); }
+        .tx-amount.expense { color: var(--retro-pink); }
+        
+        .badge { display: inline-block; padding: 2px 6px; font-size: 0.8rem; border: 1px solid var(--border-dark); margin-right: 8px; }
+        .bg-gcash { background: var(--retro-blue); color: #fff; }
+        .bg-maya { background: var(--retro-green); color: #000; }
+        .bg-bank { background: var(--retro-gold); color: #000; }
+
+        /* INDIVIDUAL DELETE BUTTON [X] */
+        .btn-del {
+            background: var(--retro-red); color: #fff; border: 2px solid var(--border-dark); width: 30px; height: 30px;
+            font-family: 'Press Start 2P', cursive; font-size: 0.6rem; cursor: pointer; transition: transform 0.1s;
+            display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--border-dark);
+        }
+        .btn-del:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px var(--border-dark); }
+
+        /* --- AI & VISUALS --- */
+        .ai-section { background: #000; border: 4px solid var(--retro-green); padding: 20px; box-shadow: inset 0 0 15px rgba(74, 222, 128, 0.2), 6px 6px 0px var(--border-dark); display: flex; flex-direction: column; }
+        .ai-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px dashed var(--retro-green); padding-bottom: 10px; margin-bottom: 15px; }
+        .ai-header h2 { font-family: 'Press Start 2P', cursive; font-size: 0.7rem; color: var(--retro-green); margin: 0;}
+        .btn-analyze { background: var(--retro-green); color: #000; border: 2px solid var(--retro-green); padding: 8px 12px; font-family: 'Press Start 2P', cursive; font-size: 0.5rem; cursor: pointer; }
+        .btn-analyze:active { transform: translateY(2px); }
+        .ai-terminal { flex-grow: 1; color: var(--retro-green); font-size: 1.2rem; line-height: 1.5; text-shadow: 0 0 5px rgba(74, 222, 128, 0.5); overflow-y: auto; max-height: 300px; }
+        .cursor { display: inline-block; width: 10px; height: 15px; background: var(--retro-green); animation: blink 1s step-end infinite; vertical-align: middle; margin-left: 5px;}
+        
+        .chart-container { position: relative; width: 100%; max-width: 250px; height: 250px; margin: 0 auto; }
+        .empty-state { text-align: center; color: var(--text-muted); margin-top: 50px; font-size: 1.5rem;}
+    </style>
+</head>
+<body>
+
+    <a href="../index.html" class="back-btn">◀ RETURN TO PORTFOLIO</a>
+
+    <div class="app-container">
+        <header>
+            <h1><i class="fas fa-wallet"></i> CAPYSAVE</h1>
+            <div class="subtitle">Personal Finance Hub v4.2</div>
+        </header>
+
+        <div class="settings-bar">
+            <div class="setting-group">
+                <label>BUDGET LIMIT (₱)</label>
+                <input type="number" id="set-budget" min="0" step="500" placeholder="0">
+            </div>
+            <div class="setting-group">
+                <label>SAVINGS GOAL NAME</label>
+                <input type="text" id="set-goal-name" placeholder="Name your goal...">
+            </div>
+            <div class="setting-group">
+                <label>GOAL TARGET (₱)</label>
+                <input type="number" id="set-goal-target" min="0" step="1000" placeholder="0">
+            </div>
+            <button class="btn-update" id="btn-update-settings">SAVE CONFIG</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="stat-card primary">
+                <h3>NET WORTH</h3>
+                <div class="val" id="val-networth">₱0</div>
+                <div class="sub-val" id="val-platforms">G: ₱0 | M: ₱0 | B: ₱0</div>
+            </div>
+            <div class="stat-card warning" id="card-allowance">
+                <h3>BUDGET REMAINING</h3>
+                <div class="val" id="val-budget">₱0</div>
+                <div class="sub-val" id="val-health">Health Grade: -</div>
+            </div>
+            <div class="stat-card good">
+                <h3 id="val-goal-title">SAVINGS GOAL</h3>
+                <div class="val" id="val-goal-prog">0%</div>
+                <div class="sub-val" id="val-goal-amt">₱0 / ₱0</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="panel">
+                <h2><i class="fas fa-plus-square"></i> LOG TRANSACTION</h2>
+                <form id="tx-form">
+                    <div class="form-group">
+                        <label>TYPE</label>
+                        <select id="tx-type">
+                            <option value="expense">EXPENSE (-)</option>
+                            <option value="income">INCOME (+)</option>
+                            <option value="savings">TRANSFER TO SAVINGS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>PLATFORM / ACCOUNT</label>
+                        <select id="tx-platform">
+                            <option value="GCash">GCash</option>
+                            <option value="Maya">Maya</option>
+                            <option value="Bank">Bank Account</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>CATEGORY</label>
+                        <select id="tx-category">
+                            <option value="Food">Food & Dining</option>
+                            <option value="Groceries">Groceries</option>
+                            <option value="Utilities">Bills & Utilities</option>
+                            <option value="Transport">Transportation</option>
+                            <option value="Healthcare">Healthcare</option>
+                            <option value="Shopping">Shopping & Retail</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>AMOUNT (₱)</label>
+                        <input type="number" id="tx-amount" min="1" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>NOTE (Optional)</label>
+                        <input type="text" id="tx-note" placeholder="Specific details..." autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn-submit">EXECUTE LOG</button>
+                </form>
+            </div>
+
+            <div class="panel">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--border-dark); margin-bottom: 20px; padding-bottom: 10px;">
+                    <h2 style="border: none; padding: 0; margin: 0;"><i class="fas fa-list-alt"></i> SYSTEM LOGS</h2>
+                    <button id="btn-reset" style="background: transparent; color: var(--retro-red); border: none; font-family: 'Press Start 2P', cursive; font-size: 0.5rem; cursor: pointer; text-decoration: underline;">PURGE ALL DATA</button>
+                </div>
+                
+                <ul id="transaction-list"></ul>
+            </div>
+        </div>
+
+        <div class="bottom-content">
+            <div class="ai-section">
+                <div class="ai-header">
+                    <h2><i class="fas fa-robot"></i> CAPY-AI ADVISOR</h2>
+                    <button class="btn-analyze" id="btn-analyze">ANALYZE HABITS</button>
+                </div>
+                <div class="ai-terminal">
+                    <span id="ai-output">> System initialized. Start logging data to generate financial diagnostics...</span><span class="cursor"></span>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2><i class="fas fa-chart-pie"></i> EXPENSE RADAR</h2>
+                <div class="chart-container"><canvas id="expenseChart"></canvas></div>
+                <div style="text-align: center; margin-top: 15px; color: var(--retro-pink); font-size: 0.9rem;" id="leak-warning"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ INSERT YOUR API KEY HERE ⚠️
+        const GROQ_API_KEY = "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"; 
+
+        // --- STATE MANAGEMENT ---
+        // Clean slate default starting at zero
+        let transactions = JSON.parse(localStorage.getItem('capysave-tx-gen')) || [];
+        let config = JSON.parse(localStorage.getItem('capysave-cfg-gen')) || { budget: 0, goalName: '', goalTarget: 0 };
+
+        // DOM Elements
+        const form = document.getElementById('tx-form');
+        const list = document.getElementById('transaction-list');
+        const aiOutput = document.getElementById('ai-output');
+        const btnAnalyze = document.getElementById('btn-analyze');
+        const btnReset = document.getElementById('btn-reset');
+        let typeWriterTimeout;
+
+        // Init Form Settings
+        document.getElementById('set-budget').value = config.budget > 0 ? config.budget : '';
+        document.getElementById('set-goal-name').value = config.goalName;
+        document.getElementById('set-goal-target').value = config.goalTarget > 0 ? config.goalTarget : '';
+
+        const formatMoney = (amt) => '₱' + amt.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // --- UPDATE DASHBOARD ---
+        function updateDashboard() {
+            let gcash = 0, maya = 0, bank = 0, expenses = 0, saved = 0;
+            const categoryTotals = {};
+
+            transactions.forEach(tx => {
+                const amt = parseFloat(tx.amount);
+                
+                if (tx.type === 'savings') {
+                    saved += amt;
+                    if(tx.platform === 'GCash') gcash -= amt;
+                    else if(tx.platform === 'Maya') maya -= amt;
+                    else bank -= amt;
+                } else if (tx.type === 'income') {
+                    if(tx.platform === 'GCash') gcash += amt;
+                    else if(tx.platform === 'Maya') maya += amt;
+                    else bank += amt;
+                } else if (tx.type === 'expense') {
+                    expenses += amt;
+                    if(tx.platform === 'GCash') gcash -= amt;
+                    else if(tx.platform === 'Maya') maya -= amt;
+                    else bank -= amt;
+                    categoryTotals[tx.category] = (categoryTotals[tx.category] || 0) + amt;
+                }
+            });
+
+            // Net Worth
+            const netWorth = Math.max(0, gcash) + Math.max(0, maya) + Math.max(0, bank) + saved;
+            document.getElementById('val-networth').textContent = formatMoney(netWorth);
+            document.getElementById('val-platforms').textContent = `G: ${formatMoney(Math.max(0, gcash))} | M: ${formatMoney(Math.max(0, maya))} | B: ${formatMoney(Math.max(0, bank))}`;
+
+            // Budget & Health Score
+            const budgetLeft = config.budget - expenses;
+            document.getElementById('val-budget').textContent = formatMoney(budgetLeft);
+            
+            let healthGrade = 'S (Optimal)'; let color = 'var(--retro-green)';
+            if (config.budget === 0) {
+                healthGrade = 'No Budget Set'; color = 'var(--text-muted)';
+            } else {
+                const spentPct = (expenses / config.budget) * 100;
+                if(expenses === 0) { healthGrade = 'Perfect'; color = 'var(--retro-green)'; }
+                else if(spentPct > 100) { healthGrade = 'F (Deficit)'; color = 'var(--retro-red)'; }
+                else if(spentPct > 85) { healthGrade = 'C (Warning)'; color = 'var(--retro-gold)'; }
+                else if(spentPct > 50) { healthGrade = 'B (Stable)'; color = 'var(--retro-blue)'; }
+            }
+            
+            document.getElementById('val-health').textContent = `Health Grade: ${healthGrade}`;
+            document.getElementById('val-health').style.color = color;
+            document.getElementById('card-allowance').style.borderColor = color;
+
+            // Goal Progress
+            const goalPct = config.goalTarget > 0 ? Math.min(100, (saved / config.goalTarget) * 100) : 0;
+            document.getElementById('val-goal-title').textContent = config.goalName ? config.goalName.toUpperCase() : 'NO GOAL SET';
+            document.getElementById('val-goal-prog').textContent = `${goalPct.toFixed(1)}%`;
+            document.getElementById('val-goal-amt').textContent = `${formatMoney(saved)} / ${formatMoney(config.goalTarget)}`;
+
+            // Leak Warning
+            if(Object.keys(categoryTotals).length > 0) {
+                const highestCat = Object.keys(categoryTotals).reduce((a, b) => categoryTotals[a] > categoryTotals[b] ? a : b);
+                document.getElementById('leak-warning').textContent = `! Highest Drain: ${highestCat} (${formatMoney(categoryTotals[highestCat])})`;
+            } else {
+                document.getElementById('leak-warning').textContent = "";
+            }
+        }
+
+        // --- RENDER LIST & THE [X] DELETE BUTTON ---
+        function renderList() {
+            list.innerHTML = '';
+            if (transactions.length === 0) { list.innerHTML = '<div class="empty-state">No logs.</div>'; return; }
+
+            [...transactions].reverse().forEach(tx => {
+                const li = document.createElement('li'); li.className = 'tx-item';
+                let badge = 'bg-gcash';
+                if(tx.platform === 'Maya') badge = 'bg-maya';
+                if(tx.platform === 'Bank') badge = 'bg-bank';
+
+                let sign = '-', colorClass = 'expense';
+                if(tx.type === 'income') { sign = '+'; colorClass = 'income'; }
+                if(tx.type === 'savings') { sign = '▲'; colorClass = 'income'; }
+
+                li.innerHTML = `
+                    <div class="tx-info">
+                        <h4>${tx.category} ${tx.note ? `(${tx.note})` : ''}</h4>
+                        <p><span class="badge ${badge}">${tx.platform}</span> ${tx.date}</p>
+                    </div>
+                    <div class="tx-amount ${colorClass}">${sign}${formatMoney(parseFloat(tx.amount))}</div>
+                    <button class="btn-del" onclick="deleteTx(${tx.id})" title="Delete Transaction"><i class="fas fa-times"></i></button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        // Individual Delete Feature
+        window.deleteTx = function(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveData(); 
+            updateAll();
+            typeWriter("> Log purged from database. Numbers recalculated.");
+        }
+
+        // --- CHART JS ---
+        Chart.defaults.font.family = "'Press Start 2P', cursive"; Chart.defaults.color = "#a8a8b2";
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+        let expenseChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: ['No Data'], datasets: [{ data: [1], backgroundColor: ['#2a2a40'], borderColor: '#000000', borderWidth: 2 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e1e2f', titleFont: { size: 10 }, bodyFont: { size: 14, family: "'VT323', monospace" } } } }
+        });
+
+        function updateChart() {
+            const expData = {}; let hasExp = false;
+            transactions.forEach(tx => {
+                if (tx.type === 'expense') { hasExp = true; expData[tx.category] = (expData[tx.category] || 0) + parseFloat(tx.amount); }
+            });
+
+            if (!hasExp) {
+                expenseChart.data.labels = ['No Data']; expenseChart.data.datasets[0].data = [1];
+                expenseChart.data.datasets[0].backgroundColor = ['#2a2a40']; expenseChart.update(); return;
+            }
+
+            expenseChart.data.labels = Object.keys(expData);
+            expenseChart.data.datasets[0].data = Object.values(expData);
+            expenseChart.data.datasets[0].backgroundColor = ['#ff79c6', '#bd93f9', '#3b82f6', '#4ade80', '#facc15', '#ff5555', '#ffffff', '#8be9fd'];
+            expenseChart.update();
+        }
+
+        // --- FORM HANDLING ---
+        document.getElementById('btn-update-settings').addEventListener('click', () => {
+            config.budget = parseFloat(document.getElementById('set-budget').value) || 0;
+            config.goalName = document.getElementById('set-goal-name').value || '';
+            config.goalTarget = parseFloat(document.getElementById('set-goal-target').value) || 0;
+            localStorage.setItem('capysave-cfg-gen', JSON.stringify(config));
+            updateAll(); typeWriter("> Configuration saved. Dashboards updated.");
+        });
+
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            const newTx = {
+                id: Date.now(), type: document.getElementById('tx-type').value, platform: document.getElementById('tx-platform').value,
+                category: document.getElementById('tx-type').value === 'savings' ? 'Savings' : document.getElementById('tx-category').value,
+                amount: document.getElementById('tx-amount').value, note: document.getElementById('tx-note').value,
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            };
+            transactions.push(newTx); saveData(); updateAll();
+            document.getElementById('tx-amount').value = ''; document.getElementById('tx-note').value = '';
+            typeWriter("> Log accepted. Data sync complete.");
+        });
+
+        // The TRUE Factory Reset
+        btnReset.addEventListener('click', function() {
+            const confirmPurge = confirm("CRITICAL WARNING: This will permanently wipe all financial records AND your settings. Are you sure you want to proceed?");
+            if (confirmPurge) {
+                transactions = [];
+                config = { budget: 0, goalName: '', goalTarget: 0 };
+                
+                localStorage.removeItem('capysave-tx-gen');
+                localStorage.removeItem('capysave-cfg-gen');
+                
+                // Clear the visual input boxes
+                document.getElementById('set-budget').value = '';
+                document.getElementById('set-goal-name').value = '';
+                document.getElementById('set-goal-target').value = '';
+
+                updateAll();
+                typeWriter("> Memory wiped. System restored to absolute zero.");
+            }
+        });
+
+        function saveData() { localStorage.setItem('capysave-tx-gen', JSON.stringify(transactions)); }
+        function updateAll() { updateDashboard(); renderList(); updateChart(); }
+
+        // --- AI LOGIC ---
+        function typeWriter(text) {
+            clearTimeout(typeWriterTimeout); aiOutput.textContent = ""; let i = 0;
+            function type() { if (i < text.length) { aiOutput.textContent += text.charAt(i); i++; typeWriterTimeout = setTimeout(type, 20); } }
+            type();
+        }
+
+        async function runAIAnalysis() {
+            btnAnalyze.disabled = true; btnAnalyze.style.opacity = '0.5';
+
+            if (GROQ_API_KEY === "YOUR_GROQ_API_KEY_HERE") {
+                typeWriter("> ERROR: Groq API Key missing. Neural connection offline.");
+                btnAnalyze.disabled = false; btnAnalyze.style.opacity = '1'; return;
+            }
+
+            typeWriter("> Booting Capy-AI... Analyzing financial vectors...");
+
+            let expTotal = 0; let savedTotal = 0; const cats = {};
+            transactions.forEach(t => { 
+                const amt = parseFloat(t.amount);
+                if(t.type === 'expense') { expTotal += amt; cats[t.category] = (cats[t.category] || 0) + amt; }
+                if(t.type === 'savings') savedTotal += amt;
+            });
+            let topCat = Object.keys(cats).length > 0 ? Object.keys(cats).reduce((a,b)=>cats[a]>cats[b]?a:b) : 'None';
+
+            const sysPrompt = `You are Capy-AI, a cyberpunk personal financial advisor.
+            Your job is to give short, highly specific advice based on the user's spending data. Generate a "What-If" prediction for wealth growth.
+            Keep response under 4 sentences. NO markdown formatting. NO bullet points. Be analytical and direct.`;
+
+            const usrPrompt = `User Data: Budget Limit: ₱${config.budget}. Goal: ${config.goalName} (Target: ₱${config.goalTarget}, Current: ₱${savedTotal}). 
+            Expenses: ₱${expTotal}. Highest spending category: ${topCat} (₱${cats[topCat] || 0}). 
+            Give me a specific health evaluation and a "What if" scenario to help me reach my goal faster based on my highest expense.`;
+
+            try {
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST", headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({ model: "llama-3.1-8b-instant", messages: [{ role: "system", content: sysPrompt }, { role: "user", content: usrPrompt }], temperature: 0.7, max_tokens: 150 })
+                });
+                if (!response.ok) throw new Error("API Failed");
+                const data = await response.json();
+                typeWriter("> " + data.choices[0].message.content); 
+            } catch (err) { typeWriter("> ERROR: Groq API Link Failed."); }
+
+            btnAnalyze.disabled = false; btnAnalyze.style.opacity = '1';
+        }
+
+        btnAnalyze.addEventListener('click', runAIAnalysis);
+
+        // Run on start
+        updateAll();
+    </script>
+</body>
+</html>
