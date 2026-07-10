@@ -616,75 +616,108 @@
     </div>
 
     <script>
+        // --- THEME, MOBILE NAVIGATION, AND REVEAL ANIMATIONS ---
+        const root = document.documentElement;
         const themeBtn = document.getElementById('theme-btn');
-        const themeIcon = themeBtn.querySelector('i');
-        const body = document.documentElement;
+        const themeIcon = themeBtn?.querySelector('i');
 
-        const savedTheme = localStorage.getItem('arcade-theme');
-        if (savedTheme === 'light') {
-            body.setAttribute('data-theme', 'light');
-            themeIcon.classList.replace('fa-sun', 'fa-moon');
-            themeIcon.style.color = 'var(--retro-purple)';
+        function applyTheme(theme) {
+            root.setAttribute('data-theme', theme);
+            localStorage.setItem('portfolio-theme', theme);
+
+            if (!themeBtn || !themeIcon) return;
+
+            if (theme === 'light') {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                themeBtn.setAttribute('aria-label', 'Switch to dark theme');
+                themeBtn.setAttribute('title', 'Switch to dark theme');
+            } else {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                themeBtn.setAttribute('aria-label', 'Switch to light theme');
+                themeBtn.setAttribute('title', 'Switch to light theme');
+            }
         }
 
-        themeBtn.addEventListener('click', () => {
-            if (body.getAttribute('data-theme') === 'light') {
-                body.removeAttribute('data-theme');
-                localStorage.setItem('arcade-theme', 'dark');
-                themeIcon.classList.replace('fa-moon', 'fa-sun');
-                themeIcon.style.color = 'var(--retro-gold)';
-            } else {
-                body.setAttribute('data-theme', 'light');
-                localStorage.setItem('arcade-theme', 'light');
-                themeIcon.classList.replace('fa-sun', 'fa-moon');
-                themeIcon.style.color = 'var(--retro-purple)';
-            }
+        applyTheme(localStorage.getItem('portfolio-theme') || 'dark');
+
+        themeBtn?.addEventListener('click', () => {
+            const currentTheme = root.getAttribute('data-theme') || 'dark';
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
         });
 
         const mobileBtn = document.getElementById('mobile-menu-btn');
         const navMenu = document.getElementById('nav-center-menu');
 
-        mobileBtn.addEventListener('click', () => {
-            navMenu.classList.toggle('show');
-            const icon = mobileBtn.querySelector('i');
-            if (navMenu.classList.contains('show')) {
-                icon.classList.replace('fa-bars', 'fa-times');
-            } else {
-                icon.classList.replace('fa-times', 'fa-bars');
-            }
-        });
-
-        const particleCanvas = document.getElementById('particle-canvas');
-        const colors = ['#4ade80', '#3b82f6', '#bd93f9', '#ff79c6', '#facc15'];
-
-        function createParticles() {
-            for (let i = 0; i < 50; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'pixel-particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.top = Math.random() * 100 + '%';
-                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                particle.style.animationDuration = (Math.random() * 3 + 2.5) + 's';
-                particle.style.animationDelay = (Math.random() * 5) + 's';
-                particleCanvas.appendChild(particle);
-            }
+        function closeMobileMenu() {
+            navMenu?.classList.remove('show');
+            const icon = mobileBtn?.querySelector('i');
+            icon?.classList.remove('fa-times');
+            icon?.classList.add('fa-bars');
+            mobileBtn?.setAttribute('aria-expanded', 'false');
+            mobileBtn?.setAttribute('aria-label', 'Open navigation menu');
         }
-        createParticles();
 
-        const observerOptions = { threshold: 0.18 };
+        mobileBtn?.setAttribute('aria-expanded', 'false');
+        mobileBtn?.setAttribute('aria-label', 'Open navigation menu');
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible', 'show');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, observerOptions);
+        mobileBtn?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const isOpen = navMenu?.classList.toggle('show');
+            const icon = mobileBtn.querySelector('i');
 
-        document.querySelectorAll('.skill-card, .reveal').forEach(el => {
-            observer.observe(el);
+            if (isOpen) {
+                icon?.classList.remove('fa-bars');
+                icon?.classList.add('fa-times');
+                mobileBtn.setAttribute('aria-expanded', 'true');
+                mobileBtn.setAttribute('aria-label', 'Close navigation menu');
+            } else {
+                closeMobileMenu();
+            }
         });
+
+        navMenu?.querySelectorAll('a').forEach((link) => {
+            link.addEventListener('click', closeMobileMenu);
+        });
+
+        document.addEventListener('click', (event) => {
+            if (
+                navMenu?.classList.contains('show') &&
+                !navMenu.contains(event.target) &&
+                !mobileBtn?.contains(event.target)
+            ) {
+                closeMobileMenu();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeMobileMenu();
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 980) closeMobileMenu();
+        });
+
+        const animatedElements = document.querySelectorAll('.skill-card, .item-card, .reveal');
+
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('show', 'visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.14,
+                rootMargin: '0px 0px -45px 0px'
+            });
+
+            animatedElements.forEach((element) => observer.observe(element));
+        } else {
+            animatedElements.forEach((element) => element.classList.add('show', 'visible'));
+        }
 
         // --- EMULATOR LOGIC ---
         const emulatorToggle = document.getElementById('emulator-toggle');
@@ -710,7 +743,7 @@
         });
 
         // --- AI CHAT LOGIC ---
-        const GROQ_API_KEY = "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";
+        const GROQ_API_KEY = ""; // Do not expose secret API keys in frontend code.
 
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
