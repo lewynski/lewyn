@@ -242,47 +242,109 @@
             <a href="mailto:lewynvllram@gmail.com"><i class="fas fa-envelope"></i></a>
         </div>
     </footer>
-
     <script>
-        // UI ONLY - No AI Chat logic here to keep the console clean
+        // --- THEME, MOBILE NAVIGATION, AND REVEAL ANIMATIONS ---
+        const root = document.documentElement;
         const themeBtn = document.getElementById('theme-btn');
-        const themeIcon = themeBtn.querySelector('i');
-        const body = document.documentElement;
-        const savedTheme = localStorage.getItem('arcade-theme');
-        if (savedTheme === 'light') {
-            body.setAttribute('data-theme', 'light');
-            themeIcon.classList.replace('fa-sun', 'fa-moon');
-            themeIcon.style.color = 'var(--retro-purple)';
-        }
-        themeBtn.addEventListener('click', () => {
-            if (body.getAttribute('data-theme') === 'light') {
-                body.removeAttribute('data-theme'); localStorage.setItem('arcade-theme', 'dark');
-                themeIcon.classList.replace('fa-moon', 'fa-sun'); themeIcon.style.color = 'var(--retro-gold)';
+        const themeIcon = themeBtn?.querySelector('i');
+
+        function applyTheme(theme) {
+            root.setAttribute('data-theme', theme);
+            localStorage.setItem('portfolio-theme', theme);
+
+            if (!themeBtn || !themeIcon) return;
+
+            if (theme === 'light') {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                themeBtn.setAttribute('aria-label', 'Switch to dark theme');
+                themeBtn.setAttribute('title', 'Switch to dark theme');
             } else {
-                body.setAttribute('data-theme', 'light'); localStorage.setItem('arcade-theme', 'light');
-                themeIcon.classList.replace('fa-sun', 'fa-moon'); themeIcon.style.color = 'var(--retro-purple)';
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                themeBtn.setAttribute('aria-label', 'Switch to light theme');
+                themeBtn.setAttribute('title', 'Switch to light theme');
             }
+        }
+
+        applyTheme(localStorage.getItem('portfolio-theme') || 'dark');
+
+        themeBtn?.addEventListener('click', () => {
+            const currentTheme = root.getAttribute('data-theme') || 'dark';
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
         });
 
         const mobileBtn = document.getElementById('mobile-menu-btn');
         const navMenu = document.getElementById('nav-center-menu');
-        mobileBtn.addEventListener('click', () => {
-            navMenu.classList.toggle('show');
+
+        function closeMobileMenu() {
+            navMenu?.classList.remove('show');
+            const icon = mobileBtn?.querySelector('i');
+            icon?.classList.remove('fa-times');
+            icon?.classList.add('fa-bars');
+            mobileBtn?.setAttribute('aria-expanded', 'false');
+            mobileBtn?.setAttribute('aria-label', 'Open navigation menu');
+        }
+
+        mobileBtn?.setAttribute('aria-expanded', 'false');
+        mobileBtn?.setAttribute('aria-label', 'Open navigation menu');
+
+        mobileBtn?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const isOpen = navMenu?.classList.toggle('show');
             const icon = mobileBtn.querySelector('i');
-            if (navMenu.classList.contains('show')) icon.classList.replace('fa-bars', 'fa-times');
-            else icon.classList.replace('fa-times', 'fa-bars');
+
+            if (isOpen) {
+                icon?.classList.remove('fa-bars');
+                icon?.classList.add('fa-times');
+                mobileBtn.setAttribute('aria-expanded', 'true');
+                mobileBtn.setAttribute('aria-label', 'Close navigation menu');
+            } else {
+                closeMobileMenu();
+            }
         });
 
-        const observerOptions = { threshold: 0.1 };
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('show');
-                    observer.unobserve(entry.target);
-                }
+        navMenu?.querySelectorAll('a').forEach((link) => {
+            link.addEventListener('click', closeMobileMenu);
+        });
+
+        document.addEventListener('click', (event) => {
+            if (
+                navMenu?.classList.contains('show') &&
+                !navMenu.contains(event.target) &&
+                !mobileBtn?.contains(event.target)
+            ) {
+                closeMobileMenu();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeMobileMenu();
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 980) closeMobileMenu();
+        });
+
+        const animatedElements = document.querySelectorAll('.skill-card, .item-card, .reveal');
+
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('show', 'visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.14,
+                rootMargin: '0px 0px -45px 0px'
             });
-        }, observerOptions);
-        document.querySelectorAll('.item-card').forEach(el => observer.observe(el));
+
+            animatedElements.forEach((element) => observer.observe(element));
+        } else {
+            animatedElements.forEach((element) => element.classList.add('show', 'visible'));
+        }
     </script>
 </body>
 </html>
